@@ -1,0 +1,21 @@
+#grid-pane {
+  grid-size: 1 2;
+  grid-rows: 3fr 1fr;
+}
+
+.pane {
+  border: solid green;
+}
+
+#ram {
+  border: solid white;
+  padding: 0 1;
+  width: 80%;
+  height: auto;
+}
+
+RamPane {
+}
+
+ProcessPane {
+}
