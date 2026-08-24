@@ -1,0 +1,28 @@
+[project]
+name = "ram-visualiser"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Otsute", email = "rahatpracharktam@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "textual>=8.2.8",
+    "textual-dev>=1.8.0",
+]
+
+[project.scripts]
+ram-visualiser = "ram_visualiser.__main__:main"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 88
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]

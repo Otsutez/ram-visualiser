@@ -1,32 +1,21 @@
 from typing import override
 
-from textual import log
 from textual.app import App, ComposeResult, RenderResult
-from textual.containers import CenterMiddle, Grid, Horizontal, Vertical
+from textual.containers import CenterMiddle, Grid, Vertical
 from textual.widget import Widget
-from textual.widgets import Footer, Header, Static
+from textual.widgets import Footer, Header
 
 """
            Data
 RamReader ------> RamPane
-
 - RamReader parse memory usage from /proc/*
+
 - RamReader returns an easily digestible data to RamePane
 - RamPane parses the data and render the ram
 """
 
 
-class RamReader:
-    """
-    Gather all processes memory usage and return a rendered string for
-    frontend to use
-    """
-
-    def get_render(self):
-        pass
-
-
-class Ram(Widget):
+class RamView(Widget):
     """Ram widget which will illustrates memory usage"""
 
     # TODO: Make ram determines it's optimal width and height, dynamically size itself
@@ -46,14 +35,14 @@ class Ram(Widget):
 class RamPane(CenterMiddle):
     @override
     def compose(self) -> ComposeResult:
-        yield Ram(id="ram")
+        yield RamView(id="ram")
 
 
 class ProcessPane(Vertical):
     pass
 
 
-class RamVisualiser(App):
+class RamVisualiserApp(App):
     CSS_PATH = "app.tcss"
     TITLE = "Ram Visualiser"
 
@@ -64,7 +53,3 @@ class RamVisualiser(App):
             yield RamPane(classes="pane")
             yield ProcessPane(classes="pane")
         yield Footer()
-
-
-if __name__ == "__main__":
-    RamVisualiser().run()
