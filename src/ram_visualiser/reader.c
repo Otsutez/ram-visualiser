@@ -78,6 +78,8 @@ int main() {
     char pagemap_path[PATH_MAX];
 
     while (scanf("%lu", &pid) == 1) {
+        printf("%lu\n", pid);
+
         /* Open maps file */
         snprintf(maps_path, PATH_MAX, "/proc/%lu/maps", pid);
         FILE *maps = fopen(maps_path, "r");
