@@ -80,6 +80,7 @@ class MemoryParser:
         )
 
         if match := pattern.match(self.curr):
+            self.accept()
             groups = match.groupdict()
             vaddr = int(groups["vaddr"], 16)
             pfn = int(groups["pfn"], 16)
