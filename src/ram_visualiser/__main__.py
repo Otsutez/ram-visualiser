@@ -1,4 +1,4 @@
-from .app import RamVisualiserApp
+from ram_visualiser.app import RamVisualiserApp
 
 
 def main():

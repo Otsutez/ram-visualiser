@@ -1,6 +1,6 @@
 #grid-pane {
-  grid-size: 1 2;
-  grid-rows: 3fr 1fr;
+  grid-size: 2 1;
+  grid-columns: 3fr 1fr;
 }
 
 .pane {
@@ -8,10 +8,7 @@
 }
 
 #ram {
-  border: solid white;
-  padding: 0 1;
-  width: 80%;
-  height: auto;
+  background: white;
 }
 
 RamPane {

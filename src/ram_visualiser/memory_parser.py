@@ -36,9 +36,6 @@ class MemoryParser:
     """
     Gather all processes memory usage and return concise data for RamView to
     interpret and render
-    TODO: Run subprocess and get output in read_all() function
-    TODO: Then get_process_map() function
-    TODO: Implement accept()
     """
 
     def __init__(self):
