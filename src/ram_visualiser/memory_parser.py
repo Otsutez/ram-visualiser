@@ -95,47 +95,73 @@ class ProcessData:
     pagemap_entries: dict[int, PageMapEntry]
 
 
-def read_cmdline(pid: int) -> str:
-    cmdline_file = Path(f"/proc/{pid}/cmdline")
-    try:
-        with cmdline_file.open("r") as c:
-            return c.read().strip()
-    except OSError:
-        return ""
+class MemoryReader:
+    PAGE_SIZE: int = os.sysconf("SC_PAGESIZE")
 
+    # Source - https://stackoverflow.com/a/49361727
+    # Posted by Pietro Battiston, modified by community. See post 'Timeline' for change history
+    # Retrieved 2026-08-31, License - CC BY-SA 4.0
+    @staticmethod
+    def format_bytes(size: int) -> str:
+        power = float(2**10)
+        n = 0
+        power_labels = {0: "B", 1: "K", 2: "M", 3: "G", 4: "T"}
+        num = float(size)
+        while num > power:
+            num /= power
+            n += 1
+        if num >= 10 or int(num) == 0:
+            return f"{int(num)}{power_labels[n]}"
+        else:
+            return f"{num:.1f}{power_labels[n]}"
 
-def read_stat(pid: int) -> Stat | None:
-    cmdline = read_cmdline(pid)
-    stat_file = Path(f"/proc/{pid}/stat")
-    try:
-        with stat_file.open("r") as s:
-            stat = s.read().strip()
+    @staticmethod
+    def read_cmdline(pid: int) -> str:
+        cmdline_file = Path(f"/proc/{pid}/cmdline")
+        try:
+            with cmdline_file.open("r") as c:
+                return c.read().strip()
+        except OSError:
+            return ""
 
-            # Parse stat
-            if match := re.match(
-                r"^.*\((?P<comm>[^\)]*)\)\s(?P<state>[RSDZTtWXxKWPI])\s(?P<rest>.*)$",
-                stat,
-            ):
-                comm = match.group("comm")
-                state = match.group("state")
-                rest = map(int, match.group("rest").split())
-                return Stat(pid, comm, cmdline, state, *rest)
-            else:
-                # Return None if format of stat file does not match our expectations
-                return None
-    except (OSError, ValueError):
-        return None
+    @staticmethod
+    def read_stat(pid: int) -> Stat | None:
+        cmdline = MemoryReader.read_cmdline(pid)
+        stat_file = Path(f"/proc/{pid}/stat")
+        try:
+            with stat_file.open("r") as s:
+                stat = s.read().strip()
 
+                # Parse stat
+                if match := re.match(
+                    r"^.*\((?P<comm>[^\)]*)\)\s(?P<state>[RSDZTtWXxKWPI])\s(?P<rest>.*)$",
+                    stat,
+                ):
+                    comm = match.group("comm")
+                    state = match.group("state")
+                    rest = map(int, match.group("rest").split())
+                    return Stat(pid, comm, cmdline, state, *rest)
+                else:
+                    # Return None if format of stat file does not match our expectations
+                    return None
+        except (OSError, ValueError):
+            return None
 
-def get_all_stats() -> list[Stat]:
-    proc_dir = Path("/proc")
-    pids = [int(file) for file in os.listdir(proc_dir) if file.isdigit()]
-    result: list[Stat] = []
-    for pid in pids:
-        stat = read_stat(pid)
-        if stat:
-            result.append(stat)
-    return result
+    @staticmethod
+    def get_pids() -> list[int]:
+        proc_dir = Path("/proc")
+        pids = [int(file) for file in os.listdir(proc_dir) if file.isdigit()]
+        return pids
+
+    @staticmethod
+    def get_all_stats() -> list[Stat]:
+        pids = MemoryReader.get_pids()
+        result: list[Stat] = []
+        for pid in pids:
+            stat = MemoryReader.read_stat(pid)
+            if stat:
+                result.append(stat)
+        return result
 
 
 class MemoryParser:
@@ -278,16 +304,6 @@ class MemoryParser:
             )
         return map
 
-    def get_pids(self) -> list[int]:
-        proc_dir = Path("/proc")
-        pids = [int(file) for file in os.listdir(proc_dir) if file.isdigit()]
-        return pids
-
-    def get_pids_str(self) -> str:
-        pids = self.get_pids()
-        pids = "\n".join(map(str, pids))
-        return pids
-
     def run_reader(self, pids: str) -> str:
         process = subprocess.run(
             ["build/bin/reader"],
@@ -298,22 +314,17 @@ class MemoryParser:
         )
         return process.stdout
 
-    def get_process_map(self) -> dict[int, ProcessData]:
-        """
-        Returns a dictionary of pids mapped to it's memory data.
-        Raise GetProcessMapError when failed to get input
-        """
-        pids = self.get_pids_str()
-        print(pids)
-        try:
-            output = self.run_reader(pids)
-        except subprocess.CalledProcessError as e:
-            exception = GetProcessMapError(e.stderr)
-            raise exception
-        map = self.parse_output(output)
-        return map
-
-
-if __name__ == "__main__":
-    proc_map = MemoryParser().get_process_map()
-    print(map)
+    # def get_process_map(self) -> dict[int, ProcessData]:
+    #     """
+    #     Returns a dictionary of pids mapped to it's memory data.
+    #     Raise GetProcessMapError when failed to get input
+    #     """
+    #     pids = self.get_pids_str()
+    #     print(pids)
+    #     try:
+    #         output = self.run_reader(pids)
+    #     except subprocess.CalledProcessError as e:
+    #         exception = GetProcessMapError(e.stderr)
+    #         raise exception
+    #     map = self.parse_output(output)
+    #     return map
