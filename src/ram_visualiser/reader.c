@@ -85,14 +85,16 @@ int main() {
         FILE *maps = fopen(maps_path, "r");
         if (maps == NULL) {
             fprintf(stderr, "Error: failed to open maps at %s\n", maps_path);
-            exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
+            continue;
         }
         /* Open pagemap file */
         snprintf(pagemap_path, PATH_MAX, "/proc/%lu/pagemap", pid);
         int pagemap_fd = open(pagemap_path, O_RDONLY);
         if (pagemap_fd < 0) {
             fprintf(stderr, "Error: failed to open pagemap at %s\n", pagemap_path);
-            exit(EXIT_FAILURE);
+            // exit(EXIT_FAILURE);
+            continue;
         }
 
         /* Read vaddr range https://man7.org/linux/man-pages/man5/proc_pid_maps.5.html */
