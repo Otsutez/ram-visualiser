@@ -11,8 +11,8 @@
   background: white;
 }
 
-RamPane {
-}
-
-ProcessPane {
+ProcessSelector {
+  border: round lightcoral;
+  width: 80%;
+  height: 80%;
 }

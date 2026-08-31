@@ -1,5 +1,5 @@
-from ram_visualiser.app import RamVisualiserApp
+from ram_visualiser.app import ProcessVisualiserApp
 
 
 def main():
-    RamVisualiserApp().run()
+    ProcessVisualiserApp().run()
