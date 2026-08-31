@@ -6,6 +6,69 @@ from dataclasses import dataclass
 from pathlib import Path
 
 
+class GetProcessMapError(Exception):
+    """Raised when memory_parser failed to retrieve process data"""
+
+    pass
+
+
+@dataclass
+class Stat:
+    pid: int
+    comm: str
+    cmdline: str
+    state: str
+    ppid: int
+    pgrp: int
+    session: int
+    tty_nr: int
+    tpgid: int
+    flags: int
+    minflt: int
+    cminflt: int
+    majflt: int
+    cmajflt: int
+    utime: int
+    stime: int
+    cutime: int
+    cstime: int
+    priority: int
+    nice: int
+    num_threads: int
+    itrealvalue: int
+    starttime: int
+    vsize: int
+    rss: int
+    rsslim: int
+    startcode: int
+    endcode: int
+    startstack: int
+    kstkesp: int
+    kstkeip: int
+    signal: int
+    blocked: int
+    sigignore: int
+    sigcatch: int
+    wchan: int
+    nswap: int
+    cnswap: int
+    exit_signal: int
+    processor: int
+    rt_priority: int
+    policy: int
+    delayacct_blkio_ticks: int
+    guest_time: int
+    cguest_time: int
+    start_data: int
+    end_data: int
+    start_brk: int
+    arg_start: int
+    arg_end: int
+    env_start: int
+    env_end: int
+    exit_code: int
+
+
 @dataclass
 class PageMapEntry:
     pfn: int
@@ -30,6 +93,49 @@ class ProcessData:
     name: str
     maps_entries: list[MapsEntry]
     pagemap_entries: dict[int, PageMapEntry]
+
+
+def read_cmdline(pid: int) -> str:
+    cmdline_file = Path(f"/proc/{pid}/cmdline")
+    try:
+        with cmdline_file.open("r") as c:
+            return c.read().strip()
+    except OSError:
+        return ""
+
+
+def read_stat(pid: int) -> Stat | None:
+    cmdline = read_cmdline(pid)
+    stat_file = Path(f"/proc/{pid}/stat")
+    try:
+        with stat_file.open("r") as s:
+            stat = s.read().strip()
+
+            # Parse stat
+            if match := re.match(
+                r"^.*\((?P<comm>[^\)]*)\)\s(?P<state>[RSDZTtWXxKWPI])\s(?P<rest>.*)$",
+                stat,
+            ):
+                comm = match.group("comm")
+                state = match.group("state")
+                rest = map(int, match.group("rest").split())
+                return Stat(pid, comm, cmdline, state, *rest)
+            else:
+                # Return None if format of stat file does not match our expectations
+                return None
+    except (OSError, ValueError):
+        return None
+
+
+def get_all_stats() -> list[Stat]:
+    proc_dir = Path("/proc")
+    pids = [int(file) for file in os.listdir(proc_dir) if file.isdigit()]
+    result: list[Stat] = []
+    for pid in pids:
+        stat = read_stat(pid)
+        if stat:
+            result.append(stat)
+    return result
 
 
 class MemoryParser:
@@ -172,10 +278,14 @@ class MemoryParser:
             )
         return map
 
-    def get_pids_input(self) -> str:
+    def get_pids(self) -> list[int]:
         proc_dir = Path("/proc")
-        pids = [file for file in os.listdir(proc_dir) if file.isdigit()]
-        pids = "\n".join(pids)
+        pids = [int(file) for file in os.listdir(proc_dir) if file.isdigit()]
+        return pids
+
+    def get_pids_str(self) -> str:
+        pids = self.get_pids()
+        pids = "\n".join(map(str, pids))
         return pids
 
     def run_reader(self, pids: str) -> str:
@@ -189,7 +299,21 @@ class MemoryParser:
         return process.stdout
 
     def get_process_map(self) -> dict[int, ProcessData]:
-        pids = self.get_pids_input()
-        output = self.run_reader(pids)
+        """
+        Returns a dictionary of pids mapped to it's memory data.
+        Raise GetProcessMapError when failed to get input
+        """
+        pids = self.get_pids_str()
+        print(pids)
+        try:
+            output = self.run_reader(pids)
+        except subprocess.CalledProcessError as e:
+            exception = GetProcessMapError(e.stderr)
+            raise exception
         map = self.parse_output(output)
         return map
+
+
+if __name__ == "__main__":
+    proc_map = MemoryParser().get_process_map()
+    print(map)
