@@ -1,6 +1,6 @@
 import pytest
 
-from ram_visualiser.memory_parser import (
+from procvis.memory import (
     MapsEntry,
     MemoryParser,
     PageMapEntry,

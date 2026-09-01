@@ -1,4 +1,5 @@
 import os
+import pwd
 import re
 import subprocess
 from collections.abc import Iterator
@@ -17,6 +18,7 @@ class Stat:
     pid: int
     comm: str
     cmdline: str
+    user: str
     state: str
     ppid: int
     pgrp: int
@@ -116,6 +118,12 @@ class MemoryReader:
             return f"{num:.1f}{power_labels[n]}"
 
     @staticmethod
+    def unformat_bytes(size: str) -> int:
+        num, suffix = float(size[:-1]), size[-1]
+        power_labels = {"B": 1, "K": 2**10, "M": 2**20, "G": 2**30, "T": 2**40}
+        return int(num * power_labels[suffix])
+
+    @staticmethod
     def read_cmdline(pid: int) -> str:
         cmdline_file = Path(f"/proc/{pid}/cmdline")
         try:
@@ -125,8 +133,19 @@ class MemoryReader:
             return ""
 
     @staticmethod
+    def read_user(pid: int) -> str:
+        pid_dir = Path(f"/proc/{pid}")
+        if pid_dir.exists():
+            stat = os.stat(pid_dir)
+            uid = stat.st_uid
+            return pwd.getpwuid(uid).pw_name.strip()
+        else:
+            return ""
+
+    @staticmethod
     def read_stat(pid: int) -> Stat | None:
         cmdline = MemoryReader.read_cmdline(pid)
+        user = MemoryReader.read_user(pid)
         stat_file = Path(f"/proc/{pid}/stat")
         try:
             with stat_file.open("r") as s:
@@ -140,7 +159,7 @@ class MemoryReader:
                     comm = match.group("comm")
                     state = match.group("state")
                     rest = map(int, match.group("rest").split())
-                    return Stat(pid, comm, cmdline, state, *rest)
+                    return Stat(pid, comm, cmdline, user, state, *rest)
                 else:
                     # Return None if format of stat file does not match our expectations
                     return None
