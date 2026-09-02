@@ -1,10 +1,12 @@
 from typing import override
 
 from rich.text import Text
+from textual import work
 from textual.app import App, ComposeResult
 from textual.containers import CenterMiddle
 from textual.reactive import reactive
 from textual.widgets import DataTable, Footer, Header, ListView
+from textual.worker import Worker, get_current_worker
 
 from procvis.memory import (
     MemoryParser,
@@ -125,7 +127,7 @@ class ProcessSelector(DataTable):
         ("m", "sort_by_mem", "Sort By Memory"),
     ]
 
-    current_sort = "pid"
+    current_sort = "mem"
 
     def action_sort_by_pid(self) -> None:
         self.sort("pid", key=lambda pid: int(pid.plain))
@@ -213,11 +215,22 @@ class ProcessVisualiserApp(App):
     pids: reactive[list[int]] = reactive([])
 
     def on_mount(self) -> None:
-        """Update process information every 5 seconds"""
+        """Start worker to fetch pids"""
+        self.update_pids()
         self.set_interval(5, self.update_pids)
 
+    @work(exclusive=True, thread=True)
     def update_pids(self) -> None:
-        self.pids = MemoryReader.get_pids()
+        worker = get_current_worker()
+        pids = MemoryReader.get_pids()
+        if not worker.is_cancelled:
+            self.call_from_thread(self.set_pids, pids)
+
+    def set_pids(self, pids: list[int]) -> None:
+        self.pids = pids
+
+    def on_worker_state_changed(self, event: Worker.StateChanged) -> None:
+        self.log(event)
 
     def compute_stats(self) -> dict[int, Stat]:
         """Retrieve stats for all pids when pids updated"""
@@ -239,8 +252,6 @@ class ProcessVisualiserApp(App):
     def compose(self) -> ComposeResult:
         yield Header()
         yield CenterMiddle(ProcessSelector())
-        # with Grid(id="grid-pane"):
-        #     yield RamPane(classes="pane")
         yield Footer()
 
 
