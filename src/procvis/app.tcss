@@ -1,18 +1,29 @@
-#grid-pane {
-  grid-size: 2 1;
-  grid-columns: 3fr 1fr;
-}
-
-.pane {
-  border: solid green;
-}
-
-#ram {
-  background: white;
-}
-
 ProcessSelector {
   border: round lightcoral;
   width: 80%;
   height: 80%;
+}
+
+.vertical-grid {
+  layout: grid;
+  grid-size: 2 1;
+  grid-columns: 65% 35%;
+}
+
+.horizontal-grid {
+  layout: grid;
+  grid-size: 1 2;
+  grid-rows: 65% 35%;
+}
+
+#vm-tabbed-pane {
+  border: round lightsteelblue;
+  height: 100%;
+  width: 100%;
+}
+
+#process-info {
+  border: round mediumseagreen;
+  width: 100%;
+  height: 100%;
 }
